@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,8 +25,6 @@ SECRET_KEY = "django-insecure-o)-ls4!7d^vig@@a+s-!&2*cy3bsa^7+gookw43gc=qw1i67%r
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -148,3 +147,5 @@ REST_FRAMEWORK = {
 
 STRIPE_SECRET_KEY = 'sk_test_51PBnJcFpUjh5Az62cECuV0eLdCEXDJnjNZlxR5hiMp6GMeoXXr08LaSFaqwnECpXVusMs3ijjjBul31QoHrbiG5Z00qTRlq5UN'
 STRIPE_PUBLISHABLE_KEY = 'pk_test_51PBnJcFpUjh5Az623N83DVj3FQMo23XT9hXCvMVtnBin1ieYxStNHHIIpNhIiD8xbimQCQJlNK9x8aih3vdhVnnS00Sgs0hrQu'
+
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
