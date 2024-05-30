@@ -30,7 +30,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        domain_url = "http://localhost:8000/"
+        domain_url = f"{request.scheme}://{request.get_host()}/"
         try:
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
