@@ -1,1 +1,1 @@
-web: gunicorn simplypi-backend.wsgi
+web: gunicorn tutorial.wsgi
