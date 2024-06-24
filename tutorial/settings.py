@@ -152,6 +152,28 @@ STRIPE_PUBLISHABLE_KEY = 'pk_test_51PBnJcFpUjh5Az623N83DVj3FQMo23XT9hXCvMVtnBin1
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
 
+CORS_ALLOW_HEADERS = [
+    'authorization',
+    'content-type',
+    'x-csrftoken',
+    'accept',
+    'accept-encoding',
+    'origin',
+    'dnt',
+    'user-agent',
+    'x-requested-with',
+    'access-control-allow-origin',
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'https://your-production-site.com',
