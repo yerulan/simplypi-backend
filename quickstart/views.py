@@ -31,6 +31,9 @@ class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         domain_url = f"{request.scheme}://{request.get_host()}/"
+        plan = request.data.get('plan')
+        price = request.data.get('price')
+        period = request.data.get('period')
         try:
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -39,9 +42,9 @@ class CreateCheckoutSessionView(APIView):
                         'price_data': {
                             'currency': 'usd',
                             'product_data': {
-                                'name': 'T-shirt',
+                                'name': plan,
                             },
-                            'unit_amount': 2000,
+                            'unit_amount': int(price) * 100,
                         },
                         'quantity': 1,
                     },
@@ -50,6 +53,6 @@ class CreateCheckoutSessionView(APIView):
                 success_url=domain_url + 'success/',
                 cancel_url=domain_url + 'cancel/',
             )
-            return Response({'id': checkout_session.id})
+            return Response({'id': checkout_session.id, 'url': checkout_session.url})
         except Exception as e:
             return Response({'error': str(e)})
