@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'dj_rest_auth.registration',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -53,7 +54,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    'allauth.account.middleware.AccountMiddleware'
+    'allauth.account.middleware.AccountMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = "tutorial.urls"
@@ -149,3 +151,8 @@ STRIPE_SECRET_KEY = 'sk_test_51PBnJcFpUjh5Az62cECuV0eLdCEXDJnjNZlxR5hiMp6GMeoXXr
 STRIPE_PUBLISHABLE_KEY = 'pk_test_51PBnJcFpUjh5Az623N83DVj3FQMo23XT9hXCvMVtnBin1ieYxStNHHIIpNhIiD8xbimQCQJlNK9x8aih3vdhVnnS00Sgs0hrQu'
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',')
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://your-production-site.com',
+]
