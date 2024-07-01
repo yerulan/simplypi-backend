@@ -30,7 +30,8 @@ class GroupViewSet(viewsets.ModelViewSet):
 class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        domain_url = f"{request.scheme}://{request.get_host()}/"
+        referer = request.META.get('HTTP_REFERER')
+        domain_url = referer if referer else f"{request.scheme}://{request.get_host()}/"
         plan = request.data.get('plan')
         price = request.data.get('price')
         period = request.data.get('period')
