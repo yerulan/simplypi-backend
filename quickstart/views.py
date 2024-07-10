@@ -36,7 +36,7 @@ class CreateCheckoutSessionView(APIView):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         referer = request.META.get('HTTP_REFERER')
         domain_url = referer if referer else f"{request.scheme}://{request.get_host()}/"
-        lookupKey = request.data.get('lookup_key')
+        lookupKey = request.data.get('lookupKey')
         try:
             prices = stripe.Price.list(
                 lookup_keys=[lookupKey],
