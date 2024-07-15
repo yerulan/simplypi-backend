@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 webhook_secret = 'whsec_hc9ddzDdSHaxwkN4rt2ubfuOe7lFJUdj'
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -86,6 +88,8 @@ class WebhookEndpointView(APIView):
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
 
         print(sig_header)
+        logger.debug(f"Received payload: {payload}")
+        logger.debug(f"Received Stripe signature: {sig_header}")
 
         try:
             event = stripe.Webhook.construct_event(
