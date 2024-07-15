@@ -7,7 +7,6 @@ import stripe
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
-from flask import Flask, redirect, jsonify, json, request, current_app
 
 
 webhook_secret = 'whsec_6b5d31cb74c3bd00feaeef7b901dffa4c535265f0de8778a7f710da1a8f01748'
@@ -77,7 +76,7 @@ class CreateCustomerPortalView(APIView):
 
 class WebhookEndpointView(APIView):
     def post(self, request, *args, **kwargs):
-        request_data = json.loads(request.data)
+        request_data = request.body
 
         if webhook_secret:
             # Retrieve the event by verifying the signature using the raw body and secret if webhook signing is configured.
@@ -113,4 +112,4 @@ class WebhookEndpointView(APIView):
             # handle active entitlement summary updated
             print('Active entitlement summary updated: %s', event.id)
 
-        return jsonify({'status': 'success'})
+        return Response({'status': 'success'})
