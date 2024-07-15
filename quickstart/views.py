@@ -8,6 +8,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
 import logging
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.template.loader import render_to_string
+from django.contrib.sites.shortcuts import get_current_site
+from django.contrib.auth.tokens import default_token_generator
+import logging
 
 
 logger = logging.getLogger(__name__)
@@ -107,7 +116,38 @@ class WebhookEndpointView(APIView):
         try:
             if event['type'] == 'checkout.session.completed':
                 session = event['data']['object']
-                logger.info('🔔 Payment succeeded!')
+                customer_email = session.get('customer_email')
+                stripe_customer_id = session.get('customer')
+
+                if customer_email and stripe_customer_id:
+                    user, created = User.objects.get_or_create(
+                        username=customer_email, 
+                        email=customer_email,
+                        defaults={'is_active': False}  # Set the user as inactive until they complete registration
+                    )
+                    if created:
+                        user.profile.stripe_customer_id = stripe_customer_id
+                        user.save()
+
+                        # Send email to complete registration
+                        current_site = get_current_site(request)
+                        mail_subject = 'Complete your registration'
+                        message = render_to_string('registration_complete_email.html', {
+                            'user': user,
+                            'domain': current_site.domain,
+                            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                            'token': default_token_generator.make_token(user),
+                        })
+                        send_mail(
+                            mail_subject, 
+                            message, 
+                            settings.EMAIL_HOST_USER, 
+                            [customer_email]
+                        )
+
+                    logger.info('🔔 Payment succeeded and user created!')
+                else:
+                    logger.warning('Customer email or Stripe customer ID is missing.')
                 # Handle successful payment intent here
             elif event['type'] == 'customer.subscription.trial_will_end':
                 logger.info('Subscription trial will end')
