@@ -3,6 +3,7 @@ blinker==1.8.2
 certifi==2024.2.2
 charset-normalizer==3.3.2
 click==8.1.7
+dj-database-url==2.2.0
 dj-rest-auth==6.0.0
 Django==5.0.6
 django-allauth==0.63.1
@@ -17,6 +18,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.4
 MarkupSafe==2.1.5
 packaging==24.0
+psycopg2-binary==2.9.9
 PyYAML==6.0.1
 requests==2.32.2
 sqlparse==0.5.0

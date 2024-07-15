@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
-
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -209,3 +209,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'support@simplypi.io'
 EMAIL_HOST_PASSWORD = "ax9qgkm'E&b)=4-K_yCJ7u"
 DEFAULT_FROM_EMAIL = 'webmaster@localhost'
+
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default='postgres://u4rcl20616m60e:p03dbb529694df833e66f3050c3dbd7c5747dea58b45adb629c797f21aa6fb979@c67okggoj39697.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dfokucsphj5nda'
+    )
+}
