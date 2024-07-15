@@ -76,43 +76,36 @@ class CreateCustomerPortalView(APIView):
 
 class WebhookEndpointView(APIView):
     def post(self, request, *args, **kwargs):
-        request_data = request.body
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
 
-        print(request.META['HTTP_STRIPE_SIGNATURE'])
-        print(request.headers.get('stripe-signature'))
+        try:
+            event = stripe.Webhook.construct_event(
+                payload=payload, sig_header=sig_header, secret=webhook_secret
+            )
+        except ValueError:
+            # Invalid payload
+            return Response(status=400)
+        except stripe.error.SignatureVerificationError:
+            # Invalid signature
+            return Response(status=400)
 
-        if webhook_secret:
-            # Retrieve the event by verifying the signature using the raw body and secret if webhook signing is configured.
-            sig_header = request.META['HTTP_STRIPE_SIGNATURE']
-            try:
-                event = stripe.Webhook.construct_event(
-                    payload=request.data, sig_header=sig_header, secret=webhook_secret)
-                data = event['data']
-            except Exception as e:
-                return e
-            # Get the type of webhook event sent - used to check the status of PaymentIntents.
-            event_type = event['type']
-        else:
-            data = request_data['data']
-            event_type = request_data['type']
-        data_object = data['object']
-
-        print('event ' + event_type)
-
-        if event_type == 'checkout.session.completed':
+        # Handle the event
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
             print('🔔 Payment succeeded!')
-        elif event_type == 'customer.subscription.trial_will_end':
+            # Handle successful payment intent here
+
+        # Handle other event types
+        elif event['type'] == 'customer.subscription.trial_will_end':
             print('Subscription trial will end')
-        elif event_type == 'customer.subscription.created':
-            print('Subscription created %s', event.id)
-        elif event_type == 'customer.subscription.updated':
-            print('Subscription created %s', event.id)
-        elif event_type == 'customer.subscription.deleted':
-            # handle subscription canceled automatically based
-            # upon your subscription settings. Or if the user cancels it.
-            print('Subscription canceled: %s', event.id)
-        elif event_type == 'entitlements.active_entitlement_summary.updated':
-            # handle active entitlement summary updated
-            print('Active entitlement summary updated: %s', event.id)
+        elif event['type'] == 'customer.subscription.created':
+            print('Subscription created %s' % event.id)
+        elif event['type'] == 'customer.subscription.updated':
+            print('Subscription updated %s' % event.id)
+        elif event['type'] == 'customer.subscription.deleted':
+            print('Subscription canceled: %s' % event.id)
+        elif event['type'] == 'entitlements.active_entitlement_summary.updated':
+            print('Active entitlement summary updated: %s' % event.id)
 
         return Response({'status': 'success'})
