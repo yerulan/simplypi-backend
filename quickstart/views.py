@@ -42,7 +42,6 @@ class CreateCheckoutSessionView(APIView):
                 lookup_keys=[lookupKey],
                 expand=['data.product']
             )
-            print(prices)
             checkout_session = stripe.checkout.Session.create(
                 line_items=[
                     {

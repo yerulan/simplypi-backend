@@ -30,5 +30,7 @@ urlpatterns = [
     path('api/auth/', include('dj_rest_auth.urls')),
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
     path('api/create-checkout-session/', views.CreateCheckoutSessionView.as_view(), name='create-checkout-session'),
+    path('api/create-customer-portal/', views.CreateCustomerPortalView.as_view(), name='create-customer-portal'),
+    path('api/webhook-endpoint/', views.WebhookEndpointView.as_view(), name='webhook-endpoint'),
     path('api/', include(router.urls)),
 ]
