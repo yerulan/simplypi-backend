@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-webhook_secret = 'whsec_6b5d31cb74c3bd00feaeef7b901dffa4c535265f0de8778a7f710da1a8f01748'
+webhook_secret = 'whsec_hc9ddzDdSHaxwkN4rt2ubfuOe7lFJUdj'
 
 
 class UserViewSet(viewsets.ModelViewSet):
