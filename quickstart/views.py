@@ -7,6 +7,10 @@ import stripe
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 webhook_secret = 'whsec_6b5d31cb74c3bd00feaeef7b901dffa4c535265f0de8778a7f710da1a8f01748'
@@ -60,6 +64,7 @@ class CreateCheckoutSessionView(APIView):
 
 class CreateCustomerPortalView(APIView):
     def post(self, request, *args, **kwargs):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
         checkout_session_id = request.form.get('session_id')
         checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
 
@@ -76,6 +81,7 @@ class CreateCustomerPortalView(APIView):
 
 class WebhookEndpointView(APIView):
     def post(self, request, *args, **kwargs):
+        stripe.api_key = settings.STRIPE_SECRET_KEY
         payload = request.body
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
 
@@ -83,29 +89,36 @@ class WebhookEndpointView(APIView):
             event = stripe.Webhook.construct_event(
                 payload=payload, sig_header=sig_header, secret=webhook_secret
             )
-        except ValueError:
+        except ValueError as e:
             # Invalid payload
-            return Response(status=400)
-        except stripe.error.SignatureVerificationError:
+            logger.error(f"Invalid payload: {e}")
+            return Response({'error': 'Invalid payload'}, status=400)
+        except stripe.error.SignatureVerificationError as e:
             # Invalid signature
-            return Response(status=400)
+            logger.error(f"Invalid signature: {e}")
+            return Response({'error': 'Invalid signature'}, status=400)
+        except Exception as e:
+            # Generic error handler
+            logger.error(f"Unhandled error: {e}")
+            return Response({'error': 'Unhandled error'}, status=500)
 
-        # Handle the event
-        if event['type'] == 'checkout.session.completed':
-            session = event['data']['object']
-            print('🔔 Payment succeeded!')
-            # Handle successful payment intent here
+        try:
+            if event['type'] == 'checkout.session.completed':
+                session = event['data']['object']
+                logger.info('🔔 Payment succeeded!')
+                # Handle successful payment intent here
+            elif event['type'] == 'customer.subscription.trial_will_end':
+                logger.info('Subscription trial will end')
+            elif event['type'] == 'customer.subscription.created':
+                logger.info(f'Subscription created: {event.id}')
+            elif event['type'] == 'customer.subscription.updated':
+                logger.info(f'Subscription updated: {event.id}')
+            elif event['type'] == 'customer.subscription.deleted':
+                logger.info(f'Subscription canceled: {event.id}')
+            elif event['type'] == 'entitlements.active_entitlement_summary.updated':
+                logger.info(f'Active entitlement summary updated: {event.id}')
+        except Exception as e:
+            logger.error(f"Error handling event: {e}")
+            return Response({'error': 'Error handling event'}, status=500)
 
-        # Handle other event types
-        elif event['type'] == 'customer.subscription.trial_will_end':
-            print('Subscription trial will end')
-        elif event['type'] == 'customer.subscription.created':
-            print('Subscription created %s' % event.id)
-        elif event['type'] == 'customer.subscription.updated':
-            print('Subscription updated %s' % event.id)
-        elif event['type'] == 'customer.subscription.deleted':
-            print('Subscription canceled: %s' % event.id)
-        elif event['type'] == 'entitlements.active_entitlement_summary.updated':
-            print('Active entitlement summary updated: %s' % event.id)
-
-        return Response({'status': 'success'})
+        return Response({'status': 'success'}, status=200)
