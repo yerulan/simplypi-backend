@@ -78,12 +78,15 @@ class WebhookEndpointView(APIView):
     def post(self, request, *args, **kwargs):
         request_data = request.body
 
+        print(request.META['HTTP_STRIPE_SIGNATURE'])
+        print(request.headers.get('stripe-signature'))
+
         if webhook_secret:
             # Retrieve the event by verifying the signature using the raw body and secret if webhook signing is configured.
-            signature = request.headers.get('stripe-signature')
+            sig_header = request.META['HTTP_STRIPE_SIGNATURE']
             try:
                 event = stripe.Webhook.construct_event(
-                    payload=request.data, sig_header=signature, secret=webhook_secret)
+                    payload=request.data, sig_header=sig_header, secret=webhook_secret)
                 data = event['data']
             except Exception as e:
                 return e
