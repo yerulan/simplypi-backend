@@ -87,10 +87,6 @@ class WebhookEndpointView(APIView):
         payload = request.body.decode('utf-8')
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
 
-        print(sig_header)
-        logger.debug(f"Received payload: {payload}")
-        logger.debug(f"Received Stripe signature: {sig_header}")
-
         try:
             event = stripe.Webhook.construct_event(
                 payload=payload, sig_header=sig_header, secret=webhook_secret
