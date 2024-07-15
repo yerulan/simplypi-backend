@@ -178,3 +178,5 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'https://your-production-site.com',
 ]
+
+APPEND_SLASH = False
