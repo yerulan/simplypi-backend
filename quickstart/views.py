@@ -153,6 +153,7 @@ class WebhookEndpointView(APIView):
                 session = event['data']['object']
                 logger.info(f"Session object: {session}")
                 customer_email = session.get('customer_details', {}).get('email')
+                first_name = session.get('customer_details', {}).get('name')
                 stripe_customer_id = session.get('customer')
 
                 print("HERE IS INFO: ", customer_email, stripe_customer_id)
@@ -161,6 +162,7 @@ class WebhookEndpointView(APIView):
                     user, created = User.objects.get_or_create(
                         username=customer_email, 
                         email=customer_email,
+                        first_name=first_name,
                         defaults={'is_active': False}  # Set the user as inactive until they complete registration
                     )
                     if created:
@@ -176,12 +178,16 @@ class WebhookEndpointView(APIView):
                             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                             'token': default_token_generator.make_token(user),
                         })
-                        send_mail(
-                            mail_subject, 
-                            message, 
-                            settings.EMAIL_HOST_USER, 
-                            [customer_email]
-                        )
+                        try:
+                            send_mail(
+                                mail_subject,
+                                message,
+                                settings.EMAIL_HOST_USER,
+                                [customer_email]
+                            )
+                            logger.info('🔔 Registration email sent successfully!')
+                        except Exception as e:
+                            logger.error(f"Failed to send registration email: {e}")
 
                     logger.info('🔔 Payment succeeded and user created!')
                 else:
