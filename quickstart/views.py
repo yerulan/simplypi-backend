@@ -151,7 +151,8 @@ class WebhookEndpointView(APIView):
         try:
             if event['type'] == 'checkout.session.completed':
                 session = event['data']['object']
-                customer_email = session.get('customer_email')
+                logger.info(f"Session object: {session}")
+                customer_email = session.get('customer_details', {}).get('email')
                 stripe_customer_id = session.get('customer')
 
                 print("HERE IS INFO: ", customer_email, stripe_customer_id)
