@@ -17,6 +17,7 @@ from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 import logging
+import time
 
 
 logger = logging.getLogger(__name__)
@@ -51,19 +52,53 @@ class CreateCheckoutSessionView(APIView):
         referer = request.META.get('HTTP_REFERER')
         domain_url = referer if referer else f"{request.scheme}://{request.get_host()}/"
         lookupKey = request.data.get('lookupKey')
+        recurringLookupKey = request.data.get('recurringLookupKey')
+        trialPeriodDays = request.data.get('trialPeriodDays')
         try:
             prices = stripe.Price.list(
-                lookup_keys=[lookupKey],
+                lookup_keys= [lookupKey, recurringLookupKey] if recurringLookupKey != None else [lookupKey],
                 expand=['data.product']
             )
+
+            if recurringLookupKey == None:
+                checkout_session = stripe.checkout.Session.create(
+                    line_items=[
+                        {
+                            'price': prices.data[0].id,
+                            'quantity': 1,
+                        },
+                    ],
+                    mode='subscription',
+                    success_url=domain_url +
+                    '?success=true&session_id={CHECKOUT_SESSION_ID}',
+                    cancel_url=domain_url + '?canceled=true',
+                )
+                return Response({'id': checkout_session.id, 'url': checkout_session.url})
+            
+            one_time_price = None
+            subscription_price = None
+
+            for price in prices.data:
+                if price.lookup_key == lookupKey:
+                    one_time_price = price
+                elif price.lookup_key == recurringLookupKey:
+                    subscription_price = price
+
             checkout_session = stripe.checkout.Session.create(
                 line_items=[
                     {
-                        'price': prices.data[0].id,
+                        'price': one_time_price.id,
+                        'quantity': 1,
+                    },
+                    {
+                        'price': subscription_price.id,
                         'quantity': 1,
                     },
                 ],
                 mode='subscription',
+                subscription_data={
+                    'trial_period_days': trialPeriodDays,
+                },
                 success_url=domain_url +
                 '?success=true&session_id={CHECKOUT_SESSION_ID}',
                 cancel_url=domain_url + '?canceled=true',
@@ -118,6 +153,8 @@ class WebhookEndpointView(APIView):
                 session = event['data']['object']
                 customer_email = session.get('customer_email')
                 stripe_customer_id = session.get('customer')
+
+                print("HERE IS INFO: ", customer_email, stripe_customer_id)
 
                 if customer_email and stripe_customer_id:
                     user, created = User.objects.get_or_create(
