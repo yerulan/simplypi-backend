@@ -136,6 +136,7 @@ class CreateCustomerPortalView(APIView):
 
 class WebhookEndpointView(APIView):
     def post(self, request, *args, **kwargs):
+        print("WEBHOOK SECRET IS ", webhook_secret)
         stripe.api_key = settings.STRIPE_SECRET_KEY
         payload = request.body.decode('utf-8')
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
