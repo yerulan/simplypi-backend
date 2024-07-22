@@ -150,6 +150,8 @@ REST_FRAMEWORK = {
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+PIXEL_SECRET_KEY = os.getenv('PIXEL_SECRET_KEY')
+PIXEL_ID = os.getenv('PIXEL_ID')
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') + ['127.0.0.1','127.0.0.1:8000']
 print(ALLOWED_HOSTS)
@@ -195,11 +197,11 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'INFO',
         },
         '': {  # root logger
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'INFO',
         },
     },
 }

@@ -18,10 +18,19 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 import logging
 import time
+from facebook_business.adobjects.serverside.content import Content
+from facebook_business.adobjects.serverside.custom_data import CustomData 
+from facebook_business.adobjects.serverside.delivery_category import DeliveryCategory
+from facebook_business.adobjects.serverside.event import Event
+from facebook_business.adobjects.serverside.event_request import EventRequest
+from facebook_business.adobjects.serverside.gender import Gender
+from facebook_business.adobjects.serverside.user_data import UserData
 
 
 logger = logging.getLogger(__name__)
 
+
+pixel_id = settings.PIXEL_ID
 
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
@@ -150,13 +159,22 @@ class WebhookEndpointView(APIView):
 
         try:
             if event['type'] == 'checkout.session.completed':
+                # Send pixel event
+                user_data_0 = UserData( emails=["7b17fb0bd173f625b58636fb796407c22b3d16fc78302d79f0fd30c2fc2fc068"], phones=[] )
+                custom_data_0 = CustomData( value=142.52, currency="USD" )
+                event_0 = Event( event_name="Purchase", event_time=1721670188, user_data=user_data_0, custom_data=custom_data_0, action_source="website" ) 
+                events = [event_0]
+                event_request = EventRequest( events=events, pixel_id=pixel_id )
+                event_response = event_request.execute()
+                print("EVENT RESPONSE: ", event_response)
+
+
+
                 session = event['data']['object']
                 logger.info(f"Session object: {session}")
                 customer_email = session.get('customer_details', {}).get('email')
                 first_name = session.get('customer_details', {}).get('name')
                 stripe_customer_id = session.get('customer')
-
-                print("HERE IS INFO: ", customer_email, stripe_customer_id)
 
                 if customer_email and stripe_customer_id:
                     user, created = User.objects.get_or_create(
@@ -188,6 +206,7 @@ class WebhookEndpointView(APIView):
                             logger.info('🔔 Registration email sent successfully!')
                         except Exception as e:
                             logger.error(f"Failed to send registration email: {e}")
+
 
                     logger.info('🔔 Payment succeeded and user created!')
                 else:
