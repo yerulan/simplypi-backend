@@ -59,7 +59,7 @@ class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         referer = request.META.get('HTTP_REFERER')
-        domain_url = referer if referer else f"{request.scheme}://{request.get_host()}/"
+        domain_url = "https://simplypi.io"
         lookupKey = request.data.get('lookupKey')
         recurringLookupKey = request.data.get('recurringLookupKey')
         trialPeriodDays = request.data.get('trialPeriodDays')
