@@ -23,7 +23,7 @@ import time
 logger = logging.getLogger(__name__)
 
 
-webhook_secret = 'whsec_hc9ddzDdSHaxwkN4rt2ubfuOe7lFJUdj'
+webhook_secret = settings.STRIPE_WEBHOOK_SECRET
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
