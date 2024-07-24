@@ -79,8 +79,8 @@ class CreateCheckoutSessionView(APIView):
                     ],
                     mode='subscription',
                     success_url=domain_url +
-                    '?success=true&session_id={CHECKOUT_SESSION_ID}',
-                    cancel_url=domain_url + '?canceled=true',
+                    '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
+                    cancel_url=domain_url + '/success-page?canceled=true',
                 )
                 return Response({'id': checkout_session.id, 'url': checkout_session.url})
             
@@ -109,8 +109,8 @@ class CreateCheckoutSessionView(APIView):
                     'trial_period_days': trialPeriodDays,
                 },
                 success_url=domain_url +
-                '?success=true&session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=domain_url + '?canceled=true',
+                '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=domain_url + '/success-page?canceled=true',
             )
             return Response({'id': checkout_session.id, 'url': checkout_session.url})
         except Exception as e:
