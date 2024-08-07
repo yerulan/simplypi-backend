@@ -57,37 +57,25 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
-        message = render_to_string('simplypi/registration_complete_email.html', {
-            'domain': "localhost:3000",
-            'uid': urlsafe_base64_encode(force_bytes("1")),
-        })
-        try:
-
-            mail_subject = 'Complete your registration'
-            send_mail(
-                mail_subject,
-                message,
-                settings.EMAIL_HOST_USER,
-                ['a.erulan.97@gmail.com']
-            )
-            logger.info('🔔 Registration email sent successfully!')
-        except Exception as e:
-            logger.error(f"Failed to send registration email: {e}")
-
-
-
-
         stripe.api_key = settings.STRIPE_SECRET_KEY
         referer = request.META.get('HTTP_REFERER')
         domain_url = "https://simplypi.io"
         lookupKey = request.data.get('lookupKey')
         recurringLookupKey = request.data.get('recurringLookupKey')
         trialPeriodDays = request.data.get('trialPeriodDays')
+        query_params = request.data.get('queryParams')
         try:
             prices = stripe.Price.list(
                 lookup_keys= [lookupKey, recurringLookupKey] if recurringLookupKey != None else [lookupKey],
                 expand=['data.product']
             )
+
+            success_url = f"{domain_url}/success-page?success=true&session_id={{CHECKOUT_SESSION_ID}}"
+            cancel_url = f"{domain_url}/selling-page"
+
+            if query_params:
+                success_url = f"{success_url}&{query_params}"
+                cancel_url = f"{cancel_url}?{query_params}"
 
             if recurringLookupKey == None:
                 checkout_session = stripe.checkout.Session.create(
@@ -98,9 +86,8 @@ class CreateCheckoutSessionView(APIView):
                         },
                     ],
                     mode='subscription',
-                    success_url=domain_url +
-                    '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
-                    cancel_url=domain_url + '/success-page?canceled=true',
+                    success_url=success_url,
+                    cancel_url=cancel_url,
                 )
                 return Response({'id': checkout_session.id, 'url': checkout_session.url})
             
@@ -130,7 +117,7 @@ class CreateCheckoutSessionView(APIView):
                 },
                 success_url=domain_url +
                 '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=domain_url + '/success-page?canceled=true',
+                cancel_url=cancel_url,
             )
             return Response({'id': checkout_session.id, 'url': checkout_session.url})
         except Exception as e:
@@ -212,8 +199,7 @@ class WebhookEndpointView(APIView):
                         current_site = get_current_site(request)
                         mail_subject = 'Complete your registration'
                         message = render_to_string('simplypi/registration_complete_email.html', {
-                            'user': user,
-                            'domain': current_site.domain,
+                            'domain': "https://www.simplypi.io",
                             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                             'token': default_token_generator.make_token(user),
                         })
