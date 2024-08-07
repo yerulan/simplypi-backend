@@ -57,6 +57,26 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
+        message = render_to_string('simplypi/registration_complete_email.html', {
+            'domain': "localhost:3000",
+            'uid': urlsafe_base64_encode(force_bytes("1")),
+        })
+        try:
+
+            mail_subject = 'Complete your registration'
+            send_mail(
+                mail_subject,
+                message,
+                settings.EMAIL_HOST_USER,
+                ['a.erulan.97@gmail.com']
+            )
+            logger.info('🔔 Registration email sent successfully!')
+        except Exception as e:
+            logger.error(f"Failed to send registration email: {e}")
+
+
+
+
         stripe.api_key = settings.STRIPE_SECRET_KEY
         referer = request.META.get('HTTP_REFERER')
         domain_url = "https://simplypi.io"
@@ -191,7 +211,7 @@ class WebhookEndpointView(APIView):
                         # Send email to complete registration
                         current_site = get_current_site(request)
                         mail_subject = 'Complete your registration'
-                        message = render_to_string('registration_complete_email.html', {
+                        message = render_to_string('simplypi/registration_complete_email.html', {
                             'user': user,
                             'domain': current_site.domain,
                             'uid': urlsafe_base64_encode(force_bytes(user.pk)),

@@ -68,7 +68,7 @@ ROOT_URLCONF = "tutorial.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, 'tutorial/templates'),],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -216,8 +216,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'support@simplypi.io'
-EMAIL_HOST_PASSWORD = "ax9qgkm'E&b)=4-K_yCJ7u"
-DEFAULT_FROM_EMAIL = 'webmaster@localhost'
+EMAIL_HOST_PASSWORD = "vwykaohegwfljreb"
+DEFAULT_FROM_EMAIL = 'support@simplypi.io'
 
 
 DATABASES = {
