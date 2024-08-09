@@ -250,6 +250,8 @@ class SubscriptionStatusView(APIView):
             
             # Retrieve subscriptions
             subscriptions = stripe.Subscription.list(customer=stripe_customer_id)
+
+            print(subscriptions)
             
             # Check if any subscription is active
             active_subscription = any(
