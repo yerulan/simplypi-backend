@@ -29,9 +29,11 @@ router.register(r'users', views.UserViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('api/auth/', include('dj_rest_auth.urls')),
-    path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
+    # path('api/auth/registration/', include('dj_rest_auth.registration.urls')),
     path('api/create-checkout-session/', views.CreateCheckoutSessionView.as_view(), name='create-checkout-session'),
     path('api/create-customer-portal/', views.CreateCustomerPortalView.as_view(), name='create-customer-portal'),
     path('api/webhook-endpoint/', views.WebhookEndpointView.as_view(), name='webhook-endpoint'),
     path('api/', include(router.urls)),
+    path('api/complete-registration/', views.CompleteRegistrationView.as_view(), name='complete-registration'),
+    path('api/subscription-status/', views.SubscriptionStatusView.as_view(), name='subscription-status'),
 ]

@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Group, User
-from rest_framework import permissions, viewsets, generics
+from rest_framework import permissions, viewsets, generics, status
 
 from quickstart.serializers import GroupSerializer, UserSerializer
 
@@ -10,6 +10,7 @@ from django.conf import settings
 import logging
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
@@ -18,13 +19,8 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 import logging
 import time
-from facebook_business.adobjects.serverside.content import Content
-from facebook_business.adobjects.serverside.custom_data import CustomData 
-from facebook_business.adobjects.serverside.delivery_category import DeliveryCategory
-from facebook_business.adobjects.serverside.event import Event
-from facebook_business.adobjects.serverside.event_request import EventRequest
-from facebook_business.adobjects.serverside.gender import Gender
-from facebook_business.adobjects.serverside.user_data import UserData
+import uuid
+from .models import PendingRegistration
 
 
 logger = logging.getLogger(__name__)
@@ -168,16 +164,6 @@ class WebhookEndpointView(APIView):
         try:
             if event['type'] == 'checkout.session.completed':
                 # Send pixel event
-                user_data_0 = UserData( emails=["7b17fb0bd173f625b58636fb796407c22b3d16fc78302d79f0fd30c2fc2fc068"], phones=[] )
-                custom_data_0 = CustomData( value=142.52, currency="USD" )
-                event_0 = Event( event_name="Purchase", event_time=1721670188, user_data=user_data_0, custom_data=custom_data_0, action_source="website" ) 
-                events = [event_0]
-                event_request = EventRequest( events=events, pixel_id=pixel_id )
-                event_response = event_request.execute()
-                print("EVENT RESPONSE: ", event_response)
-
-
-
                 session = event['data']['object']
                 logger.info(f"Session object: {session}")
                 customer_email = session.get('customer_details', {}).get('email')
@@ -185,37 +171,33 @@ class WebhookEndpointView(APIView):
                 stripe_customer_id = session.get('customer')
 
                 if customer_email and stripe_customer_id:
-                    user, created = User.objects.get_or_create(
-                        username=customer_email, 
-                        email=customer_email,
+                    token = str(uuid.uuid4())
+                    PendingRegistration.objects.create(
                         first_name=first_name,
-                        defaults={'is_active': False}  # Set the user as inactive until they complete registration
+                        email=customer_email,
+                        token=token,
+                        stripe_customer_id=stripe_customer_id
                     )
-                    if created:
-                        user.profile.stripe_customer_id = stripe_customer_id
-                        user.save()
-
-                        # Send email to complete registration
-                        current_site = get_current_site(request)
-                        mail_subject = 'Complete your registration'
-                        message = render_to_string('simplypi/registration_complete_email.html', {
-                            'domain': "https://www.simplypi.io",
-                            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                            'token': default_token_generator.make_token(user),
-                        })
-                        try:
-                            send_mail(
-                                mail_subject,
-                                message,
-                                settings.EMAIL_HOST_USER,
-                                [customer_email]
-                            )
-                            logger.info('🔔 Registration email sent successfully!')
-                        except Exception as e:
-                            logger.error(f"Failed to send registration email: {e}")
+                    mail_subject = 'Complete your registration'
+                    message = render_to_string('simplypi/registration_complete_email.html', {
+                        'domain': "https://www.simplypi.io",
+                        'token': token,
+                    })
+                    try:
+                        email = EmailMessage(
+                            mail_subject,
+                            message,
+                            settings.EMAIL_HOST_USER,
+                            [customer_email]
+                        )
+                        email.content_subtype = "html"  # This is the key to send HTML content
+                        email.send()
+                        logger.info('🔔 Registration email sent successfully!')
+                    except Exception as e:
+                        logger.error(f"Failed to send registration email: {e}")
 
 
-                    logger.info('🔔 Payment succeeded and user created!')
+                    logger.info(f'🔔 Payment succeeded and email sent to {customer_email}!')
                 else:
                     logger.warning('Customer email or Stripe customer ID is missing.')
                 # Handle successful payment intent here
@@ -234,3 +216,56 @@ class WebhookEndpointView(APIView):
             return Response({'error': 'Error handling event'}, status=500)
 
         return Response({'status': 'success'}, status=200)
+
+class CompleteRegistrationView(APIView):
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        token = request.data.get('token')
+
+        try:
+            pending_registration = PendingRegistration.objects.get(email=email, token=token, is_active=False)
+        except PendingRegistration.DoesNotExist:
+            return Response({"error": "Invalid token or email."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the user
+        user = User.objects.create_user(username=email, email=email, password=password)
+        user.is_active = True
+        user.save()
+
+        # Activate the subscription using the Stripe information
+        stripe_customer_id = pending_registration.stripe_customer_id
+        # Use stripe_customer_id to update the user's subscription status or any other Stripe-related actions
+
+        # Mark the registration as complete
+        pending_registration.is_active = True
+        pending_registration.save()
+
+        return Response({"message": "Registration complete."}, status=status.HTTP_201_CREATED)
+
+class SubscriptionStatusView(APIView):
+    def get(self, request, *args, **kwargs):
+        user = request.user
+
+        try:
+            # Assuming you store Stripe customer ID in a user profile or related model
+            pending_registration = PendingRegistration.objects.get(email=user.email)
+            stripe_customer_id = pending_registration.stripe_customer_id
+            
+            # Retrieve subscriptions
+            subscriptions = stripe.Subscription.list(customer=stripe_customer_id)
+            
+            # Check if any subscription is active
+            active_subscription = any(
+                subscription.status == 'active' for subscription in subscriptions.data
+            )
+
+            if active_subscription:
+                return Response({"subscription_status": "active"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"subscription_status": "inactive"}, status=status.HTTP_200_OK)
+
+        except PendingRegistration.DoesNotExist:
+            return Response({"error": "User does not have a linked Stripe customer ID."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
