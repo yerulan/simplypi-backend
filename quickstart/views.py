@@ -231,11 +231,8 @@ class CompleteRegistrationView(APIView):
         # Create the user
         user = User.objects.create_user(username=email, email=email, password=password)
         user.is_active = True
+        user.stripe_customer_id = pending_registration.stripe_customer_id
         user.save()
-
-        # Activate the subscription using the Stripe information
-        stripe_customer_id = pending_registration.stripe_customer_id
-        # Use stripe_customer_id to update the user's subscription status or any other Stripe-related actions
 
         # Mark the registration as complete
         pending_registration.is_active = True
