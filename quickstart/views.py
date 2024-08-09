@@ -249,8 +249,7 @@ class SubscriptionStatusView(APIView):
 
         try:
             # Assuming you store Stripe customer ID in a user profile or related model
-            pending_registration = PendingRegistration.objects.get(email=user.email)
-            stripe_customer_id = pending_registration.stripe_customer_id
+            stripe_customer_id = user.stripe_customer_id
             
             # Retrieve subscriptions
             subscriptions = stripe.Subscription.list(customer=stripe_customer_id)
