@@ -187,6 +187,7 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     "https://simplypi.io",
+    "https://www.simplypi.io",
 ]
 
 APPEND_SLASH = False
