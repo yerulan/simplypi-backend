@@ -55,7 +55,7 @@ class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
         referer = request.META.get('HTTP_REFERER')
-        domain_url = "https://simplypi.io"
+        domain_url = "localhost:3000"
         lookupKey = request.data.get('lookupKey')
         recurringLookupKey = request.data.get('recurringLookupKey')
         trialPeriodDays = request.data.get('trialPeriodDays')
@@ -82,10 +82,12 @@ class CreateCheckoutSessionView(APIView):
                         },
                     ],
                     mode='subscription',
-                    success_url=success_url,
-                    cancel_url=cancel_url,
+                    ui_mode='embedded',
+                    redirect_on_completion='never',
+                    # success_url=success_url,
+                    # cancel_url=cancel_url,
                 )
-                return Response({'id': checkout_session.id, 'url': checkout_session.url})
+                return Response({'id': checkout_session.id, 'url': checkout_session.url, 'clientSecret': checkout_session.client_secret})
             
             one_time_price = None
             subscription_price = None
@@ -111,11 +113,13 @@ class CreateCheckoutSessionView(APIView):
                 subscription_data={
                     'trial_period_days': trialPeriodDays,
                 },
-                success_url=domain_url +
-                '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=cancel_url,
+                ui_mode='embedded',
+                redirect_on_completion='never',
+                # success_url=domain_url +
+                # '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
+                # cancel_url=cancel_url,
             )
-            return Response({'id': checkout_session.id, 'url': checkout_session.url})
+            return Response({'id': checkout_session.id, 'url': checkout_session.url, 'clientSecret': checkout_session.client_secret})
         except Exception as e:
             print(e)
             return Response({'error': str(e)})
