@@ -82,10 +82,10 @@ class CreateCheckoutSessionView(APIView):
                         },
                     ],
                     mode='subscription',
-                    ui_mode='embedded',
-                    redirect_on_completion='never',
-                    # success_url=success_url,
-                    # cancel_url=cancel_url,
+                    # ui_mode='embedded',
+                    # redirect_on_completion='never',
+                    success_url=success_url,
+                    cancel_url=cancel_url,
                 )
                 return Response({'id': checkout_session.id, 'url': checkout_session.url, 'clientSecret': checkout_session.client_secret})
             
@@ -113,11 +113,11 @@ class CreateCheckoutSessionView(APIView):
                 subscription_data={
                     'trial_period_days': trialPeriodDays,
                 },
-                ui_mode='embedded',
-                redirect_on_completion='never',
-                # success_url=domain_url +
-                # '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
-                # cancel_url=cancel_url,
+                # ui_mode='embedded',
+                # redirect_on_completion='never',
+                success_url=domain_url +
+                '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=cancel_url,
             )
             return Response({'id': checkout_session.id, 'url': checkout_session.url, 'clientSecret': checkout_session.client_secret})
         except Exception as e:
