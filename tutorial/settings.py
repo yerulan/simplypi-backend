@@ -227,3 +227,5 @@ DATABASES = {
         default='postgres://u4rcl20616m60e:p03dbb529694df833e66f3050c3dbd7c5747dea58b45adb629c797f21aa6fb979@c67okggoj39697.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dfokucsphj5nda'
     )
 }
+
+OPENAI_API_KEY = 'sk-pbz61rozbL2By3LNSqTldc9lmUIYSOQ_FJbHtlKMAiT3BlbkFJtNGlhJ-4izRK0i8nvgSpyy28Di42kH9zXRzWqjA5wA'

@@ -1,16 +1,9 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets, generics, status
-
-from quickstart.serializers import GroupSerializer, UserSerializer
-
-import stripe
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
-import logging
-from django.contrib.auth.models import User
-from django.core.mail import send_mail
-from django.core.mail import EmailMessage
+from django.core.mail import send_mail, EmailMessage
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
@@ -18,18 +11,18 @@ from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from django.contrib.auth.tokens import default_token_generator
 import logging
-import time
+import stripe
 import uuid
-from .models import PendingRegistration
+import json
 
+from .models import PendingRegistration, ChatSession, ChatMessage
+from quickstart.serializers import GroupSerializer, UserSerializer
+from .gpt import generate_gpt_response
 
 logger = logging.getLogger(__name__)
 
-
 pixel_id = settings.PIXEL_ID
-
 webhook_secret = settings.STRIPE_WEBHOOK_SECRET
-
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
@@ -54,15 +47,14 @@ class GroupViewSet(viewsets.ModelViewSet):
 class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        referer = request.META.get('HTTP_REFERER')
-        domain_url = "https://simplypi.io"
+        domain_url = "http://localhost:3000"
         lookupKey = request.data.get('lookupKey')
         recurringLookupKey = request.data.get('recurringLookupKey')
         trialPeriodDays = request.data.get('trialPeriodDays')
         query_params = request.data.get('queryParams')
         try:
             prices = stripe.Price.list(
-                lookup_keys= [lookupKey, recurringLookupKey] if recurringLookupKey != None else [lookupKey],
+                lookup_keys=[lookupKey, recurringLookupKey] if recurringLookupKey else [lookupKey],
                 expand=['data.product']
             )
 
@@ -73,7 +65,7 @@ class CreateCheckoutSessionView(APIView):
                 success_url = f"{success_url}&{query_params}"
                 cancel_url = f"{cancel_url}?{query_params}"
 
-            if recurringLookupKey == None:
+            if recurringLookupKey is None:
                 checkout_session = stripe.checkout.Session.create(
                     line_items=[
                         {
@@ -82,13 +74,11 @@ class CreateCheckoutSessionView(APIView):
                         },
                     ],
                     mode='subscription',
-                    # ui_mode='embedded',
-                    # redirect_on_completion='never',
-                    success_url=success_url,
-                    cancel_url=cancel_url,
+                    ui_mode='embedded',
+                    redirect_on_completion='never',
                 )
                 return Response({'id': checkout_session.id, 'url': checkout_session.url, 'clientSecret': checkout_session.client_secret})
-            
+
             one_time_price = None
             subscription_price = None
 
@@ -113,25 +103,21 @@ class CreateCheckoutSessionView(APIView):
                 subscription_data={
                     'trial_period_days': trialPeriodDays,
                 },
-                # ui_mode='embedded',
-                # redirect_on_completion='never',
-                success_url=domain_url +
-                '/success-page?success=true&session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=cancel_url,
+                ui_mode='embedded',
+                redirect_on_completion='never',
             )
             return Response({'id': checkout_session.id, 'url': checkout_session.url, 'clientSecret': checkout_session.client_secret})
         except Exception as e:
-            print(e)
+            logger.error(f"Error creating checkout session: {e}")
             return Response({'error': str(e)})
+
 
 class CreateCustomerPortalView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        checkout_session_id = request.form.get('session_id')
+        checkout_session_id = request.data.get('session_id')
         checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
 
-        # This is the URL to which the customer will be redirected after they are
-        # done managing their billing with the portal.
         referer = request.META.get('HTTP_REFERER')
         domain_url = referer if referer else f"{request.scheme}://{request.get_host()}/"
 
@@ -141,9 +127,9 @@ class CreateCustomerPortalView(APIView):
         )
         return Response({'id': portalSession.id, 'url': portalSession.url})
 
+
 class WebhookEndpointView(APIView):
     def post(self, request, *args, **kwargs):
-        print("WEBHOOK SECRET IS ", webhook_secret)
         stripe.api_key = settings.STRIPE_SECRET_KEY
         payload = request.body.decode('utf-8')
         sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
@@ -153,21 +139,17 @@ class WebhookEndpointView(APIView):
                 payload=payload, sig_header=sig_header, secret=webhook_secret
             )
         except ValueError as e:
-            # Invalid payload
             logger.error(f"Invalid payload: {e}")
             return Response({'error': 'Invalid payload'}, status=400)
         except stripe.error.SignatureVerificationError as e:
-            # Invalid signature
             logger.error(f"Invalid signature: {e}")
             return Response({'error': 'Invalid signature'}, status=400)
         except Exception as e:
-            # Generic error handler
             logger.error(f"Unhandled error: {e}")
             return Response({'error': 'Unhandled error'}, status=500)
 
         try:
             if event['type'] == 'checkout.session.completed':
-                # Send pixel event
                 session = event['data']['object']
                 logger.info(f"Session object: {session}")
                 customer_email = session.get('customer_details', {}).get('email')
@@ -194,17 +176,15 @@ class WebhookEndpointView(APIView):
                             settings.EMAIL_HOST_USER,
                             [customer_email]
                         )
-                        email.content_subtype = "html"  # This is the key to send HTML content
+                        email.content_subtype = "html"
                         email.send()
-                        logger.info('🔔 Registration email sent successfully!')
+                        logger.info('Registration email sent successfully!')
                     except Exception as e:
                         logger.error(f"Failed to send registration email: {e}")
 
-
-                    logger.info(f'🔔 Payment succeeded and email sent to {customer_email}!')
+                    logger.info(f'Payment succeeded and email sent to {customer_email}!')
                 else:
                     logger.warning('Customer email or Stripe customer ID is missing.')
-                # Handle successful payment intent here
             elif event['type'] == 'customer.subscription.trial_will_end':
                 logger.info('Subscription trial will end')
             elif event['type'] == 'customer.subscription.created':
@@ -221,6 +201,7 @@ class WebhookEndpointView(APIView):
 
         return Response({'status': 'success'}, status=200)
 
+
 class CompleteRegistrationView(APIView):
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
@@ -232,30 +213,25 @@ class CompleteRegistrationView(APIView):
         except PendingRegistration.DoesNotExist:
             return Response({"error": "Invalid token or email."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create the user
         user = User.objects.create_user(username=email, email=email, password=password)
         user.is_active = True
         user.stripe_customer_id = pending_registration.stripe_customer_id
         user.save()
 
-        # Mark the registration as complete
         pending_registration.is_active = True
         pending_registration.save()
 
         return Response({"message": "Registration complete."}, status=status.HTTP_201_CREATED)
+
 
 class SubscriptionStatusView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
 
         try:
-            # Assuming you store Stripe customer ID in a user profile or related model
             stripe_customer_id = user.stripe_customer_id
-            
-            # Retrieve subscriptions
             subscriptions = stripe.Subscription.list(customer=stripe_customer_id)
-            
-            # Check if any subscription is active
+
             active_subscription = any(
                 subscription.status == 'active' or subscription.status == 'trialing' for subscription in subscriptions.data
             )
@@ -269,3 +245,45 @@ class SubscriptionStatusView(APIView):
             return Response({"error": "User does not have a linked Stripe customer ID."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class StartChatSessionView(APIView):
+    def post(self, request, *args, **kwargs):
+        print(request.user)
+        user = request.user
+        session = ChatSession.objects.create(user=user)
+        return Response({'session_id': session.id})
+
+
+class SendMessageView(APIView):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        session_id = request.data.get('session_id')
+        message = request.data.get('message')
+
+        try:
+            session = ChatSession.objects.get(id=session_id, user=user)
+            ChatMessage.objects.create(session=session, sender='user', message=message)
+
+            gpt_response = generate_gpt_response(message)
+            ChatMessage.objects.create(session=session, sender='gpt', message=gpt_response)
+
+            return Response({'response': gpt_response})
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Chat session not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ChatHistoryView(APIView):
+    def get(self, request, session_id, *args, **kwargs):
+        user = request.user
+
+        try:
+            session = ChatSession.objects.get(id=session_id, user=user)
+            messages = session.messages.all().order_by('timestamp')
+            chat_history = [
+                {'sender': msg.sender, 'message': msg.message, 'timestamp': msg.timestamp}
+                for msg in messages
+            ]
+            return Response({'chat_history': chat_history})
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Chat session not found.'}, status=status.HTTP_404_NOT_FOUND)
