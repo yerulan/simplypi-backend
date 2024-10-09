@@ -228,3 +228,4 @@ DATABASES = {
     )
 }
 
+OPENAI_API_KEY = 'sk-pbz61rozbL2By3LNSqTldc9lmUIYSOQ_FJbHtlKMAiT3BlbkFJtNGlhJ-4izRK0i8nvgSpyy28Di42kH9zXRzWqjA5wA'
