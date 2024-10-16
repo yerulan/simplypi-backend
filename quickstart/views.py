@@ -227,7 +227,6 @@ class CompleteRegistrationView(APIView):
 class SubscriptionStatusView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
-
         try:
             stripe_customer_id = user.stripe_customer_id
             subscriptions = stripe.Subscription.list(customer=stripe_customer_id)
@@ -274,16 +273,24 @@ class SendMessageView(APIView):
 
 
 class ChatHistoryView(APIView):
-    def get(self, request, session_id, *args, **kwargs):
+    def get(self, request, session_id=None, *args, **kwargs):
         user = request.user
 
-        try:
-            session = ChatSession.objects.get(id=session_id, user=user)
-            messages = session.messages.all().order_by('timestamp')
-            chat_history = [
-                {'sender': msg.sender, 'message': msg.message, 'timestamp': msg.timestamp}
-                for msg in messages
+        if session_id:
+            try:
+                session = ChatSession.objects.get(id=session_id, user=user)
+                messages = session.messages.all().order_by('timestamp')
+                chat_history = [
+                    {'sender': msg.sender, 'message': msg.message, 'timestamp': msg.timestamp}
+                    for msg in messages
+                ]
+                return Response({'chat_history': chat_history})
+            except ChatSession.DoesNotExist:
+                return Response({'error': 'Chat session not found.'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
+            sessions_data = [
+                {'session_id': session.id, 'title': session.title, 'created_at': session.created_at}
+                for session in sessions
             ]
-            return Response({'chat_history': chat_history})
-        except ChatSession.DoesNotExist:
-            return Response({'error': 'Chat session not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'chat_sessions': sessions_data})

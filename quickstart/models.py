@@ -12,11 +12,12 @@ class PendingRegistration(models.Model):
 
 class ChatSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions')
+    title = models.CharField(max_length=255, default='Untitled Session')
     created_at = models.DateTimeField(auto_now_add=True)
 
 class ChatMessage(models.Model):
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
-    sender = models.CharField(max_length=10, choices=[('user', 'User'), ('simplypi', 'SimplyPi')])
+    sender = models.CharField(max_length=10, choices=[('user', 'User'), ('gpt', 'GPT')])
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 

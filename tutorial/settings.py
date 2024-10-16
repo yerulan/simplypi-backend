@@ -158,6 +158,7 @@ STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 PIXEL_SECRET_KEY = os.getenv('PIXEL_SECRET_KEY')
 PIXEL_ID = os.getenv('PIXEL_ID')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '').split(',') + ['127.0.0.1','127.0.0.1:8000']
 print(ALLOWED_HOSTS)
@@ -227,5 +228,3 @@ DATABASES = {
         default='postgres://u4rcl20616m60e:p03dbb529694df833e66f3050c3dbd7c5747dea58b45adb629c797f21aa6fb979@c67okggoj39697.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/dfokucsphj5nda'
     )
 }
-
-OPENAI_API_KEY = 'sk-pbz61rozbL2By3LNSqTldc9lmUIYSOQ_FJbHtlKMAiT3BlbkFJtNGlhJ-4izRK0i8nvgSpyy28Di42kH9zXRzWqjA5wA'

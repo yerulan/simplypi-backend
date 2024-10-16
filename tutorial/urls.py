@@ -36,5 +36,6 @@ urlpatterns = [
     path('api/subscription-status/', views.SubscriptionStatusView.as_view(), name='subscription-status'),
     path('api/start-chat-session/', views.StartChatSessionView.as_view(), name='start-chat-session'),
     path('api/send-message/', views.SendMessageView.as_view(), name='send-message'),
-    path('api/chat-history/<int:session_id>/', views.ChatHistoryView.as_view(), name='chat-history'),
+    path('api/chat-history/', views.ChatHistoryView.as_view(), name='chat-history'),
+    path('api/chat-history/<int:session_id>/', views.ChatHistoryView.as_view(), name='chat-history-detail'),
 ]
