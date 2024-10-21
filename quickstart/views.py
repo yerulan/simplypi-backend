@@ -58,8 +58,6 @@ class CreateCheckoutSessionView(APIView):
                 expand=['data.product']
             )
 
-            print(prices)
-
             success_url = f"{domain_url}/success-page?success=true&session_id={{CHECKOUT_SESSION_ID}}"
             cancel_url = f"{domain_url}/selling-page"
 
