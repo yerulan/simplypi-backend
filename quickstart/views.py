@@ -47,7 +47,7 @@ class GroupViewSet(viewsets.ModelViewSet):
 class CreateCheckoutSessionView(APIView):
     def post(self, request, *args, **kwargs):
         stripe.api_key = settings.STRIPE_SECRET_KEY
-        domain_url = "http://localhost:3000"
+        domain_url = "http://simplypi.io"
         lookupKey = request.data.get('lookupKey')
         recurringLookupKey = request.data.get('recurringLookupKey')
         trialPeriodDays = request.data.get('trialPeriodDays')
@@ -57,6 +57,8 @@ class CreateCheckoutSessionView(APIView):
                 lookup_keys=[lookupKey, recurringLookupKey] if recurringLookupKey else [lookupKey],
                 expand=['data.product']
             )
+
+            print(prices)
 
             success_url = f"{domain_url}/success-page?success=true&session_id={{CHECKOUT_SESSION_ID}}"
             cancel_url = f"{domain_url}/selling-page"
