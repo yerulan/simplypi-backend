@@ -304,8 +304,8 @@ class ChatHistoryView(APIView):
             last_month = now - timedelta(weeks=4)
 
             sessions_today = ChatSession.objects.filter(user=user, is_active=True, created_at__date=today).order_by('-created_at')
-            sessions_last_week = ChatSession.objects.filter(user=user, created_at__gte=last_week, created_at__lt=today).order_by('-created_at')
-            sessions_last_month = ChatSession.objects.filter(user=user, created_at__gte=last_month, created_at__lt=last_week).order_by('-created_at')
+            sessions_last_week = ChatSession.objects.filter(user=user, is_active=True, created_at__gte=last_week, created_at__lt=today).order_by('-created_at')
+            sessions_last_month = ChatSession.objects.filter(user=user, is_active=True, created_at__gte=last_month, created_at__lt=last_week).order_by('-created_at')
 
             sessions_data = {
                 'today': [
