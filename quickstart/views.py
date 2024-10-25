@@ -248,10 +248,17 @@ class SubscriptionStatusView(APIView):
 
 class StartChatSessionView(APIView):
     def post(self, request, *args, **kwargs):
-        print(request.user)
         user = request.user
         session = ChatSession.objects.create(user=user)
         return Response({'session_id': session.id})
+
+
+class DeactivateChatSessionsView(APIView):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        sessions = ChatSession.objects.filter(user=user)
+        sessions.update(is_active=False)
+        return Response({'message': 'All chat sessions have been deactivated.'}, status=status.HTTP_200_OK)
 
 
 class SendMessageView(APIView):
@@ -264,7 +271,9 @@ class SendMessageView(APIView):
             session = ChatSession.objects.get(id=session_id, user=user)
             ChatMessage.objects.create(session=session, sender='user', message=message)
 
-            gpt_response = generate_gpt_response(message)
+            user_messages = ChatMessage.objects.filter(session=session, sender='user').order_by('timestamp')
+            messages = [msg.message for msg in user_messages]
+            gpt_response = generate_gpt_response(messages)
             ChatMessage.objects.create(session=session, sender='gpt', message=gpt_response)
 
             return Response({'response': gpt_response})
@@ -278,7 +287,7 @@ class ChatHistoryView(APIView):
 
         if session_id:
             try:
-                session = ChatSession.objects.get(id=session_id, user=user)
+                session = ChatSession.objects.get(id=session_id, user=user, is_active=True)
                 messages = session.messages.all().order_by('timestamp')
                 chat_history = [
                     {'sender': msg.sender, 'message': msg.message, 'timestamp': msg.timestamp}
@@ -288,7 +297,7 @@ class ChatHistoryView(APIView):
             except ChatSession.DoesNotExist:
                 return Response({'error': 'Chat session not found.'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            sessions = ChatSession.objects.filter(user=user).order_by('-created_at')
+            sessions = ChatSession.objects.filter(user=user, is_active=True).order_by('-created_at')
             sessions_data = [
                 {'session_id': session.id, 'title': session.title, 'created_at': session.created_at}
                 for session in sessions

@@ -38,4 +38,5 @@ urlpatterns = [
     path('api/send-message/', views.SendMessageView.as_view(), name='send-message'),
     path('api/chat-history/', views.ChatHistoryView.as_view(), name='chat-history'),
     path('api/chat-history/<int:session_id>/', views.ChatHistoryView.as_view(), name='chat-history-detail'),
+    path('api/deactivate-chat-sessions/', views.DeactivateChatSessionsView.as_view(), name='deactivate-chat-sessions'),
 ]

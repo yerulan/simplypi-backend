@@ -6,15 +6,14 @@ logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
-def generate_gpt_response(user_message):
-
+def generate_gpt_response(messages):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",  # or "gpt-4" if available
             messages=[
             {
                 "role": "user",
-                "content": user_message
+                "content": messages[-1]
             }
             ],
             max_tokens=150,
