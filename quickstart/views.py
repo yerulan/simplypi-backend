@@ -14,6 +14,7 @@ import logging
 import stripe
 import uuid
 import json
+from datetime import timedelta, datetime
 
 from .models import PendingRegistration, ChatSession, ChatMessage
 from quickstart.serializers import GroupSerializer, UserSerializer
@@ -297,9 +298,27 @@ class ChatHistoryView(APIView):
             except ChatSession.DoesNotExist:
                 return Response({'error': 'Chat session not found.'}, status=status.HTTP_404_NOT_FOUND)
         else:
-            sessions = ChatSession.objects.filter(user=user, is_active=True).order_by('-created_at')
-            sessions_data = [
-                {'session_id': session.id, 'title': session.title, 'created_at': session.created_at}
-                for session in sessions
-            ]
+            now = datetime.now()
+            today = now.date()
+            last_week = now - timedelta(weeks=1)
+            last_month = now - timedelta(weeks=4)
+
+            sessions_today = ChatSession.objects.filter(user=user, is_active=True, created_at__date=today).order_by('-created_at')
+            sessions_last_week = ChatSession.objects.filter(user=user, created_at__gte=last_week, created_at__lt=today).order_by('-created_at')
+            sessions_last_month = ChatSession.objects.filter(user=user, created_at__gte=last_month, created_at__lt=last_week).order_by('-created_at')
+
+            sessions_data = {
+                'today': [
+                    {'session_id': session.id, 'title': session.title, 'created_at': session.created_at}
+                    for session in sessions_today
+                ],
+                'last_week': [
+                    {'session_id': session.id, 'title': session.title, 'created_at': session.created_at}
+                    for session in sessions_last_week
+                ],
+                'last_month': [
+                    {'session_id': session.id, 'title': session.title, 'created_at': session.created_at}
+                    for session in sessions_last_month
+                ],
+            }
             return Response({'chat_sessions': sessions_data})
