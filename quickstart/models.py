@@ -20,6 +20,7 @@ class ChatMessage(models.Model):
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
     sender = models.CharField(max_length=10, choices=[('user', 'User'), ('gpt', 'GPT')])
     message = models.TextField()
+    image = models.TextField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
 User.add_to_class('stripe_customer_id', models.CharField(max_length=255, null=True, blank=True))

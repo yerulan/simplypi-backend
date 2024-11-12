@@ -291,7 +291,7 @@ class ChatHistoryView(APIView):
                 session = ChatSession.objects.get(id=session_id, user=user, is_active=True)
                 messages = session.messages.all().order_by('timestamp')
                 chat_history = [
-                    {'sender': msg.sender, 'message': msg.message, 'timestamp': msg.timestamp}
+                    {'sender': msg.sender, 'message': msg.message, 'image': msg.image, 'timestamp': msg.timestamp}
                     for msg in messages
                 ]
                 return Response({'chat_history': chat_history})
