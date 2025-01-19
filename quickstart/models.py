@@ -24,3 +24,23 @@ class ChatMessage(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
 User.add_to_class('stripe_customer_id', models.CharField(max_length=255, null=True, blank=True))
+
+class SATQuestion(models.Model):
+    DOMAIN_CHOICES = [
+        ('Problem-Solving and Data Analysis', 'Problem-Solving and Data Analysis'),
+        ('Algebra', 'Algebra'),
+        ('Advanced Math', 'Advanced Math'),
+        ('Geometry and Trigonometry', 'Geometry and Trigonometry'),
+    ]
+
+    id = models.CharField(max_length=50, primary_key=True)
+    domain = models.CharField(max_length=50, choices=DOMAIN_CHOICES)
+    question_text = models.TextField()
+    choices = models.JSONField()
+    correct_answer = models.CharField(max_length=1)
+    explanation = models.TextField(blank=True, null=True)
+    difficulty = models.CharField(max_length=20)
+    visuals = models.JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.domain} - {self.question_text[:50]}"

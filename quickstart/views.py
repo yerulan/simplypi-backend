@@ -15,8 +15,12 @@ import stripe
 import uuid
 import json
 from datetime import timedelta, datetime
+import os
+from django.http import JsonResponse
+from django.views import View
+import random
 
-from .models import PendingRegistration, ChatSession, ChatMessage
+from .models import PendingRegistration, ChatSession, ChatMessage, SATQuestion
 from quickstart.serializers import GroupSerializer, UserSerializer
 from .gpt import generate_gpt_response
 
@@ -322,3 +326,38 @@ class ChatHistoryView(APIView):
                 ],
             }
             return Response({'chat_sessions': sessions_data})
+
+
+class SATQuestionsView(View):
+    def get(self, request, *args, **kwargs):
+        # Define the number of questions per domain and difficulty
+        question_distribution = {
+            'Algebra': {'Easy': 5, 'Medium': 7, 'Hard': 3},  # Total: 15
+            'Advanced Math': {'Easy': 5, 'Medium': 7, 'Hard': 3},  # Total: 15
+            'Problem-Solving and Data Analysis': {'Easy': 2, 'Medium': 4, 'Hard': 1},  # Total: 7
+            'Geometry and Trigonometry': {'Easy': 2, 'Medium': 4, 'Hard': 1},  # Total: 7
+        }
+
+        selected_questions = []
+
+        # Select questions based on the distribution
+        for domain, difficulties in question_distribution.items():
+            for difficulty, count in difficulties.items():
+                questions = SATQuestion.objects.filter(domain=domain, difficulty=difficulty)
+                selected_questions.extend(random.sample(list(questions), min(count, len(questions))))
+
+        # Prepare the response data
+        response_data = []
+        for question in selected_questions:
+            response_data.append({
+                'id': question.id,
+                'domain': question.domain,
+                'question': question.question_text,
+                'choices': question.choices,
+                'explanation': question.explanation,
+                'correct_answer': question.correct_answer,
+                'difficulty': question.difficulty,
+                'visuals': question.visuals
+            })
+
+        return JsonResponse(response_data, safe=False)

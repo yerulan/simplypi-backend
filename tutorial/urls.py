@@ -20,6 +20,7 @@ from django.urls import include, path
 from rest_framework import routers
 from quickstart import views
 from django.views.generic import TemplateView
+from quickstart.views import SATQuestionsView
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
@@ -39,4 +40,5 @@ urlpatterns = [
     path('api/chat-history/', views.ChatHistoryView.as_view(), name='chat-history'),
     path('api/chat-history/<int:session_id>/', views.ChatHistoryView.as_view(), name='chat-history-detail'),
     path('api/deactivate-chat-sessions/', views.DeactivateChatSessionsView.as_view(), name='deactivate-chat-sessions'),
+    path('api/sat-questions/', SATQuestionsView.as_view(), name='sat-questions'),
 ]
